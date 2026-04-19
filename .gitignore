@@ -1,0 +1,10 @@
+# виртуально окружение
+venv/
+venv/bin/
+venv/lib/
+venv/include/
+venv/share/
+venv/pyvenv.cfg
+__pycache__/
+*.pyc
+.python-version

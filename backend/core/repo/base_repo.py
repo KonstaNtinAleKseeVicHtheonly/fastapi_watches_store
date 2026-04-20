@@ -1,0 +1,179 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
+from typing import List, Any, Dict
+from backend.core.db.database import Base
+#
+from sqlalchemy import (
+    select,        # для создания SELECT запросов
+    insert,        # для INSERT
+    update,        # для UPDATE
+    delete,        # для DELETE
+    and_,          # логическое И
+    or_,           # логическое ИЛИ
+    not_,          # логическое НЕ
+    desc,          # сортировка по убыванию
+    asc,           # сортировка по возрастанию
+    func,          # SQL функции (count, sum, avg, etc.)
+    between,       # BETWEEN оператор
+    distinct,      # DISTINCT
+    text,          # для сырых SQL запросов
+)
+
+
+
+
+
+class BaseRepository:
+    '''Базовый класс репозиториев с методами общими для отдельных классов репозиториев моделей
+    (CRUD операции) (Валидация делается на входе в endpoint через схемы тут в методы только валидные данные поступают)'''
+        
+        
+    async def get_by_id(self, session : AsyncSession, object_id:int)->object:
+            logger.info(f"получение объекта с id {object_id} из модели {Base.__name__}")
+            stmt = select(Base).where(Base.id == object_id)
+            result = await session.execute(stmt)
+            current_object =  result.scalar_one_or_none()
+            return current_object                
+
+    async def object_is_active(self,session:AsyncSession, object_id:int)->bool:
+        '''Если у объекта статус активен вернет True Иначе вернет False'''
+        if not hasattr(Base, 'is_active'):
+            raise ValueError(f"Нет атрибута is_active в модели {Base.__name__}")
+        current_object = await self.get_by_id(session, object_id)
+        if current_object is None:
+            raise ValueError(f"объекта с id : {object_id} в модели {Base.__name__} не существует")
+        return current_object.is_active
+            
+        
+    async def get_by_params(self,session:AsyncSession, **filters)->object|None:
+        '''ищет строку в табице по заданным параметрам если не находит - вернет None'''
+        stmt = select(Base).filter_by(**filters)
+        result = await session.execute(stmt)
+        current_object = result.scalar_one_or_none()
+        return current_object
+    
+    async def get_all(self, session: AsyncSession)->List[object]:
+        """Получить все записи"""
+        stmt = select(Base)
+        result = await session.execute(stmt)
+        return result.scalars().all()
+            
+    async def create(self,session: AsyncSession, data:dict)->object:
+        '''создание новоно объекта при post запросе'''
+
+        new_obj = Base(**data)
+        logger.info("объект спешно создан, сделайте комит сессии")
+        session.add(new_obj)
+        logger.info(f"добавили продукт в сессию {data}")
+        return new_obj
+
+            
+    async def get_objects_by_params(self, session : AsyncSession, **params) -> List[Any]:
+        '''по указанным ключам значениями осущесвтляет поиск  объедков в текущей модели'''
+        logger.info(f"поиск объектов в модели {Base.__name__} по параметрам {params}")
+        conditions = []
+        for field, value in params.items():
+            current_column = getattr(Base, field)
+            conditions.append(current_column == value)
+        # 3. Создаем запрос
+        stmt = select(Base)
+        if conditions:
+            stmt = stmt.where(and_(*conditions))
+        # 4. Выполняем
+        result = await session.execute(stmt)
+        return result.scalars().all()  
+    
+    async def get_objects_for_offset_pagination(self, session:AsyncSession, page:int, page_size:int, **filters)-> Dict[str, Any]:
+        '''возвращает объекты с учетом пагинации(страница , количество товаров на странице и критерии поиска) + вернет общее количестов товаров по данным фильрам'''
+        
+        # 1. Считаем общее количество (для пагинации)
+        count_stmt = select(func.count()).select_from(
+            select(Base).filter_by(**filters).subquery()
+        )
+        total = await session.scalar(count_stmt) or 0
+        
+        items_stmt = select(Base).filter_by(**filters).order_by(Base.id).offset((page - 1)*page_size).limit(page_size)
+        #offset - пропустить столько то позиий | limit - взять столько то позиций после пропущенных(offsetом)
+        
+        items_request = await session.execute(items_stmt)
+        items_result = items_request.scalars().all()
+        return {'items' : items_result, 'total' : total}
+    
+    async def get_objects_for_offset_pagination_by_params(self,session:AsyncSession, filters:list, page: int = 1,page_size: int = 10, rank_col=None)->Dict[str, Any]:
+        '''принимает параметры пагинаицц (page,page_size),список фильтров для поиска уже сформированных (в эндпоинте) и по ним поиск делает учитывая пагинацию
+        возвращает словарь из списка отобранных значений с условимия поиска и пагинации'''
+        logger.info(f"Начало поиска товаров в модели {Base.__name__} по запросу юзера, с учетом пагинации страница{page} ")
+        # 1. Считаем общее количество элементов по заданным параметрам
+        total_stmt = select(func.count()).select_from(Base).where(*filters)
+        total = await session.scalar(total_stmt) or 0 
+
+        # ищем объекты
+        #  с учетом ранга поиска(вначале будут товары с наибольшей частотой слова из запроса юзера)
+        if rank_col is not None:
+            logger.info("Адаптирование поиска с учетом ранжирвания")
+            items_stmt = (
+                    select(Base)
+                    .where(*filters)
+                    .order_by(desc(rank_col), Base.id)
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)) # срдеи отобранных товаров определяем откуда начать и сколько вывести
+            items_request = await session.execute(items_stmt)
+            rows = items_request.all()
+            items = [item[0] for item in rows]
+        else:
+            logger.info("поиск без ранжирования")
+            items_stmt = (
+                    select(Base)
+                    .where(*filters)
+                    .order_by(Base.id)
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)) # срдеи отобранных товаров определяем откуда начать и сколько вывести
+            items_request = await session.execute(items_stmt)
+            items = items_request.scalars().all()
+            
+        return {'items': items, 'total' : total}
+    
+        
+    async def delete_by_id(self, session : AsyncSession, object_id:int):
+        '''удаление объекта по id'''
+        logger.info(f"удаление объекта с id {object_id} из модели {Base.__name__}")
+        current_obj = await self.get_by_id(session, object_id)
+
+        await session.delete(current_obj)
+            
+        logger.info(f"объект с id {object_id} удален, сделайие коммит сесии")
+        return True
+    
+    async def soft_deleting_by_id(self, session : AsyncSession, object_id:int)->object:
+        '''логическое удаление (меняет isactive на False) с оставлением в БД,в случае успешного удаления вернет измененный тип объекта
+        (для рефреша в энддпоинте)'''
+        logger.info(f"Мягкое удаление  объекта с id {object_id} в модели {Base.__name__}")
+        current_obj = await self.get_by_params(session, id = object_id, is_active=True)
+        current_obj.is_active = False
+        return current_obj
+        
+    async def update_put(self, session: AsyncSession,  object_id:int ,update_data: Dict[str, Any]):
+        '''по методу put полностью обновляем строку'''
+        logger.info(f"НАчало put обновления строки с id {object_id} у модели {Base.__name__}")
+        updated_obj = await self.get_by_id(session, object_id)
+        for field, value in update_data.items():
+            if hasattr(updated_obj, field):
+                setattr(updated_obj, field, value)
+        # # Объект тот же самый, ID тот же # не нужно т.к объект до этого добалвне в сессию и его изменения
+        # session.add(updated_obj)
+        return updated_obj
+
+        
+    async def update_patch(self,session: AsyncSession,  find_by: Dict[str, Any],update_data: Dict[str, Any]):
+        '''по методу patch полностью обновляем строку'''
+        logger.info(f"НАчало put обновления строки с параметрами {find_by} у модели {Base.__name__}")
+        updated_obj = await self.get_by_params(session, **find_by)
+        if not updated_obj:
+            raise ValueError(f"объекта с параметрами  '{find_by}' не существует в модели {Base.__name__}") 
+        # Перезаписываем ВСЕ поля новыми данными
+        for field, value in update_data.items():
+            if hasattr(updated_obj, field):
+                setattr(updated_obj, field, value)
+        # Объект тот же самый, ID тот же
+        session.add(updated_obj)
+        return updated_obj

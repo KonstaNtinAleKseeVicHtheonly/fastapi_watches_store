@@ -1,8 +1,10 @@
 from sqlalchemy import Boolean, Index, Numeric, String, Integer, Float, ForeignKey, Text, text, Computed
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from typing import Optional, List
 from backend.core.db.database import Base
 from sqlalchemy.dialects.postgresql import TSVECTOR
+
+from slugify import slugify
 
 class ProductModel(Base):
     __tablename__ = "products"
@@ -58,3 +60,11 @@ class ProductModel(Base):
         ),
         nullable=False
     )
+    
+    @validates('name')
+    def generate_slug(self, key, value):
+        if value:
+            self.slug = slugify(value)
+        return value
+    def __repr__(self):
+        return f"PRoduct : id{self.id} | name {self.name}, price {self.price}, brand {self.brand}, at stock {self.stock}"

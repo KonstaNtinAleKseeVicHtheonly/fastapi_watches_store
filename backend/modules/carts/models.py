@@ -26,7 +26,13 @@ class CartItemModel(Base):
     cart_id: Mapped[int] = mapped_column(ForeignKey("carts.id"), nullable=False)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    price: Mapped[float] = mapped_column(Float, nullable=False)  # ← цена на момент добавления
 
     # Отношения
     cart: Mapped["CartModel"] = relationship("CartModel", back_populates="items")
     product: Mapped["ProductModel"] = relationship("ProductModel", back_populates="cart_items")
+    
+    @property
+    def subtotal(self) -> float:
+        """Сумма по позиции"""
+        return self.price * self.quantity

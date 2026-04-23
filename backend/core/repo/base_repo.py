@@ -27,41 +27,43 @@ class BaseRepository:
     '''Базовый класс репозиториев с методами общими для отдельных классов репозиториев моделей
     (CRUD операции) (Валидация делается на входе в endpoint через схемы тут в методы только валидные данные поступают)'''
         
+    def __init__(self, model:object):
+        self.model = model
         
     async def get_by_id(self, session : AsyncSession, object_id:int)->object:
-            logger.info(f"получение объекта с id {object_id} из модели {Base.__name__}")
-            stmt = select(Base).where(Base.id == object_id)
+            logger.info(f"получение объекта с id {object_id} из модели {self.model .__name__}")
+            stmt = select(self.model ).where(self.model .id == object_id)
             result = await session.execute(stmt)
             current_object =  result.scalar_one_or_none()
             return current_object                
 
     async def object_is_active(self,session:AsyncSession, object_id:int)->bool:
         '''Если у объекта статус активен вернет True Иначе вернет False'''
-        if not hasattr(Base, 'is_active'):
-            raise ValueError(f"Нет атрибута is_active в модели {Base.__name__}")
+        if not hasattr(self.model , 'is_active'):
+            raise ValueError(f"Нет атрибута is_active в модели {self.model .__name__}")
         current_object = await self.get_by_id(session, object_id)
         if current_object is None:
-            raise ValueError(f"объекта с id : {object_id} в модели {Base.__name__} не существует")
+            raise ValueError(f"объекта с id : {object_id} в модели {self.model .__name__} не существует")
         return current_object.is_active
             
         
     async def get_by_params(self,session:AsyncSession, **filters)->object|None:
         '''ищет строку в табице по заданным параметрам если не находит - вернет None'''
-        stmt = select(Base).filter_by(**filters)
+        stmt = select(self.model ).filter_by(**filters)
         result = await session.execute(stmt)
         current_object = result.scalar_one_or_none()
         return current_object
     
     async def get_all(self, session: AsyncSession)->List[object]:
         """Получить все записи"""
-        stmt = select(Base)
+        stmt = select(self.model )
         result = await session.execute(stmt)
         return result.scalars().all()
             
     async def create(self,session: AsyncSession, data:dict)->object:
         '''создание новоно объекта при post запросе'''
 
-        new_obj = Base(**data)
+        new_obj = self.model (**data)
         logger.info("объект спешно создан, сделайте комит сессии")
         session.add(new_obj)
         logger.info(f"добавили продукт в сессию {data}")
@@ -70,13 +72,13 @@ class BaseRepository:
             
     async def get_objects_by_params(self, session : AsyncSession, **params) -> List[Any]:
         '''по указанным ключам значениями осущесвтляет поиск  объедков в текущей модели'''
-        logger.info(f"поиск объектов в модели {Base.__name__} по параметрам {params}")
+        logger.info(f"поиск объектов в модели {self.model .__name__} по параметрам {params}")
         conditions = []
         for field, value in params.items():
-            current_column = getattr(Base, field)
+            current_column = getattr(self.model , field)
             conditions.append(current_column == value)
         # 3. Создаем запрос
-        stmt = select(Base)
+        stmt = select(self.model )
         if conditions:
             stmt = stmt.where(and_(*conditions))
         # 4. Выполняем
@@ -88,11 +90,11 @@ class BaseRepository:
         
         # 1. Считаем общее количество (для пагинации)
         count_stmt = select(func.count()).select_from(
-            select(Base).filter_by(**filters).subquery()
+            select(self.model ).filter_by(**filters).subquery()
         )
         total = await session.scalar(count_stmt) or 0
         
-        items_stmt = select(Base).filter_by(**filters).order_by(Base.id).offset((page - 1)*page_size).limit(page_size)
+        items_stmt = select(self.model ).filter_by(**filters).order_by(self.model .id).offset((page - 1)*page_size).limit(page_size)
         #offset - пропустить столько то позиий | limit - взять столько то позиций после пропущенных(offsetом)
         
         items_request = await session.execute(items_stmt)
@@ -102,9 +104,9 @@ class BaseRepository:
     async def get_objects_for_offset_pagination_by_params(self,session:AsyncSession, filters:list, page: int = 1,page_size: int = 10, rank_col=None)->Dict[str, Any]:
         '''принимает параметры пагинаицц (page,page_size),список фильтров для поиска уже сформированных (в эндпоинте) и по ним поиск делает учитывая пагинацию
         возвращает словарь из списка отобранных значений с условимия поиска и пагинации'''
-        logger.info(f"Начало поиска товаров в модели {Base.__name__} по запросу юзера, с учетом пагинации страница{page} ")
+        logger.info(f"Начало поиска товаров в модели {self.model .__name__} по запросу юзера, с учетом пагинации страница{page} ")
         # 1. Считаем общее количество элементов по заданным параметрам
-        total_stmt = select(func.count()).select_from(Base).where(*filters)
+        total_stmt = select(func.count()).select_from(self.model ).where(*filters)
         total = await session.scalar(total_stmt) or 0 
 
         # ищем объекты
@@ -112,9 +114,9 @@ class BaseRepository:
         if rank_col is not None:
             logger.info("Адаптирование поиска с учетом ранжирвания")
             items_stmt = (
-                    select(Base)
+                    select(self.model )
                     .where(*filters)
-                    .order_by(desc(rank_col), Base.id)
+                    .order_by(desc(rank_col), self.model .id)
                     .offset((page - 1) * page_size)
                     .limit(page_size)) # срдеи отобранных товаров определяем откуда начать и сколько вывести
             items_request = await session.execute(items_stmt)
@@ -123,9 +125,9 @@ class BaseRepository:
         else:
             logger.info("поиск без ранжирования")
             items_stmt = (
-                    select(Base)
+                    select(self.model )
                     .where(*filters)
-                    .order_by(Base.id)
+                    .order_by(self.model .id)
                     .offset((page - 1) * page_size)
                     .limit(page_size)) # срдеи отобранных товаров определяем откуда начать и сколько вывести
             items_request = await session.execute(items_stmt)
@@ -136,25 +138,28 @@ class BaseRepository:
         
     async def delete_by_id(self, session : AsyncSession, object_id:int):
         '''удаление объекта по id'''
-        logger.info(f"удаление объекта с id {object_id} из модели {Base.__name__}")
-        current_obj = await self.get_by_id(session, object_id)
+        try:
+            logger.info(f"удаление объекта с id {object_id} из модели {self.model .__name__}")
+            current_obj = await self.get_by_id(session, object_id)
 
-        await session.delete(current_obj)
-            
-        logger.info(f"объект с id {object_id} удален, сделайие коммит сесии")
-        return True
+            await session.delete(current_obj)
+                
+            logger.info(f"объект с id {object_id} удален, сделайие коммит сесии")
+            return True
+        except Exception :
+            return False
     
     async def soft_deleting_by_id(self, session : AsyncSession, object_id:int)->object:
         '''логическое удаление (меняет isactive на False) с оставлением в БД,в случае успешного удаления вернет измененный тип объекта
         (для рефреша в энддпоинте)'''
-        logger.info(f"Мягкое удаление  объекта с id {object_id} в модели {Base.__name__}")
+        logger.info(f"Мягкое удаление  объекта с id {object_id} в модели {self.model .__name__}")
         current_obj = await self.get_by_params(session, id = object_id, is_active=True)
         current_obj.is_active = False
         return current_obj
         
     async def update_put(self, session: AsyncSession,  object_id:int ,update_data: Dict[str, Any]):
         '''по методу put полностью обновляем строку'''
-        logger.info(f"НАчало put обновления строки с id {object_id} у модели {Base.__name__}")
+        logger.info(f"НАчало put обновления строки с id {object_id} у модели {self.model .__name__}")
         updated_obj = await self.get_by_id(session, object_id)
         for field, value in update_data.items():
             if hasattr(updated_obj, field):
@@ -166,10 +171,10 @@ class BaseRepository:
         
     async def update_patch(self,session: AsyncSession,  find_by: Dict[str, Any],update_data: Dict[str, Any]):
         '''по методу patch полностью обновляем строку'''
-        logger.info(f"НАчало put обновления строки с параметрами {find_by} у модели {Base.__name__}")
+        logger.info(f"НАчало put обновления строки с параметрами {find_by} у модели {self.model .__name__}")
         updated_obj = await self.get_by_params(session, **find_by)
         if not updated_obj:
-            raise ValueError(f"объекта с параметрами  '{find_by}' не существует в модели {Base.__name__}") 
+            raise ValueError(f"объекта с параметрами  '{find_by}' не существует в модели {self.model .__name__}") 
         # Перезаписываем ВСЕ поля новыми данными
         for field, value in update_data.items():
             if hasattr(updated_obj, field):

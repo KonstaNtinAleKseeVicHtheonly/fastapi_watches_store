@@ -1,8 +1,11 @@
 # app/models.py
 from sqlalchemy import String, Integer, Float, ForeignKey, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from typing import Optional, List
 from backend.core.db.database import Base
+from slugify import slugify
+
+
 
 class CategoryModel(Base):
     __tablename__ = "categories"
@@ -17,6 +20,13 @@ class CategoryModel(Base):
     children: Mapped[List["CategoryModel"]] = relationship("CategoryModel", back_populates="parent")
     products: Mapped[List["ProductModel"]] = relationship("ProductModel", back_populates="category")
 
+    @validates('name')
+    def generate_slug(self, key, value):
+        if value:
+            self.slug = slugify(value)
+        return value
+    def __repr__(self):
+        return f"PRoduct : id{self.id} | name {self.name}, price {self.price}, brand {self.brand}, at stock {self.stock}"
 
 
 

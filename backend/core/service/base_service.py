@@ -1,10 +1,11 @@
 
 from typing import Any, Sequence
 from sqlalchemy.ext.asyncio import  AsyncSession
-from core.repo.base_repo import BaseRepository
+from backend.core.repo.base_repo import BaseRepository
 from fastapi import HTTPException
 from loguru import logger
 from abc import ABC, abstractmethod
+
 
 
 class BaseService(ABC):
@@ -37,21 +38,26 @@ async def get_objectS_by_params(self, **params):
 async def object_is_active(self, object_id:int)->bool:
         '''Если у объекта статус активен вернет True Иначе вернет False'''
 
-        current_object = await self.get_object_by_id(object_id)
+        current_object = await self.get_object_by_id(self.session, object_id)
 
         return current_object.is_active
             
 async def get_all_objects(self, skip: int = 0, limit: int = 100) -> Sequence[object]:  
-    all_objects = await self.main_repo.get_all(skip=skip, limit=limit)
+    all_objects = await self.main_repo.get_all(self.session)
     return all_objects
 
 async def create_object(self, new_object_data:dict) -> object | None:
-    existing_object = await self.main_repo.get_by_params(new_object_data)
+    existing_object = await self.main_repo.get_by_params(self.session, **new_object_data)
     if existing_object:
       raise ValueError(f"объекта с параметрами : {new_object_data}  уже существует")
-    new_object = await self.main_repo.create(self.session, new_object_data)
-    await self.session.commit()
-    return new_object
+    
+    try:
+        new_object = await self.main_repo.create(self.session, new_object_data)
+        await self.session.commit()
+        return new_object
+    except Exception as err:
+        await self.session.rollback()
+        return HTTPException(status_code=404, detail=err)
 
 async def delete_object_softly(self, object_id:int):
     current_object = await self.get_object_by_id(object_id)

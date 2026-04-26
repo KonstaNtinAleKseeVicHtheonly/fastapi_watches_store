@@ -20,14 +20,14 @@ class ProductService(BaseService):
         self.category_repo = category_repo
     
     async def get_products_by_category(self, category_id: int) -> list[ProductModel]:
-        current_category = await self.category_repository.get_by_id(self.session, category_id)
+        current_category = await self.category_repo.get_by_id(self.session, category_id)
         if not current_category:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Category with id {category_id} not found")
             
-        # products = await self.main_repo.get_products_by_category(self.session, category_id)
-        products = await self.main_repo.get_by_params(self.session, category_id=category_id)
+        products = await self.main_repo.get_products_by_category(self.session, category_id)
+
         return products
     
     async def create_product_by_schema(self, product_data: ProductCreateSchema) -> ProductResponseSchema:

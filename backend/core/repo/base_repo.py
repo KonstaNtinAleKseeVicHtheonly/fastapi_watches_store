@@ -56,7 +56,7 @@ class BaseRepository:
     
     async def get_all(self, session: AsyncSession)->List[object]:
         """Получить все записи"""
-        stmt = select(self.model )
+        stmt = select(self.model)
         result = await session.execute(stmt)
         return result.scalars().all()
             

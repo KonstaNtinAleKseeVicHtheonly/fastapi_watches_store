@@ -3,8 +3,7 @@ from typing import List
 from sqlalchemy.orm import joinedload, selectinload
 
 from backend.core.repo.base_repo import BaseRepository
-from backend.modules.categories.models import CategoryModel
-from backend.modules.categories.schemas import CategoryCreateSchema
+from backend.modules.users.models import UserModel
 from sqlalchemy import (
     select,        # для создания SELECT запросов
     insert,        # для INSERT
@@ -24,15 +23,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 
-class CategoryRepository(BaseRepository):
+class UserRepository(BaseRepository):
     '''репозиторий для CRUD Операций с модель ProductModel'''
-    def __init__(self, category_db_model : CategoryModel):
-                super().__init__(category_db_model)
     
-    # async def create_category_by_schema(self, 
-    #                                     session:AsyncSession,
-    #                                     category_data :CategoryCreateSchema):
-    #     '''создаем по инфе из схемы категорию'''
-    #     new_category = self.model(**category_data.model_dump())
-    #     session.add(new_category)
-    #     return new_category
+    def __init__(self, user_db_model : UserModel):
+                super().__init__(user_db_model)

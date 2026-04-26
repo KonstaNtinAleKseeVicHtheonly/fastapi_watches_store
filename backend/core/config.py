@@ -28,7 +28,7 @@ class ProjectSettings(BaseSettings):
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 10
     DB_ECHO: bool = False
-    
+
     @property
     def DATABASE_URL(self) -> str:
         """URL для подключения к PostgreSQL"""
@@ -40,7 +40,7 @@ class ProjectSettings(BaseSettings):
         return "sqlite+aiosqlite:///:memory:"
     
     # ========== БЕЗОПАСНОСТЬ ==========
-    SECRET_KEY: str = "change-me-in-production"
+    SECRET_KEY: str 
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -74,10 +74,12 @@ class ProjectSettings(BaseSettings):
     # ========== ПАГИНАЦИЯ ==========
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"   # ← игнорировать лишние переменные
     
 @lru_cache()# Декоратор кэширует результат первого вызова
 def get_settings() -> ProjectSettings:

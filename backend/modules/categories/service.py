@@ -4,7 +4,7 @@ from backend.core.service.base_service import BaseService
 from sqlalchemy.ext.asyncio import  AsyncSession
 from backend.modules.categories.repo import CategoryRepository
 from backend.modules.products.repo import ProductRepository
-from backend.modules.categories.schemas import CategoryCreateSchema, CategoryResponseSchema, CategoryResponseSchemaa
+from backend.modules.categories.schemas import CategoryCreateSchema, CategoryResponseSchema, CategoryResponseSchema
 
 
 
@@ -24,7 +24,6 @@ class CategoryService(BaseService):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Category with data {new_category_data} already exists"
             )
-            
         new_category = await self.main_repo.create(self.session, new_category_data)
         if new_category:
             await self.session.refresh()

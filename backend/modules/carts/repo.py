@@ -10,22 +10,34 @@ from backend.modules.carts.models import CartModel, CartItemModel
 
 class CartRepository(BaseRepository):
 
-    async def get_by_user_id(self, user_id: int) -> Optional[CartModel]:
+    
+    def __init__(self, cart_db_model : CartModel):
+                super().__init__(cart_db_model)
+
+    async def get_by_user_id(self, session:AsyncSession, user_id: int) -> Optional[CartModel]:
+        '''вернет неразвернутый объекь корзины юзера'''
         stmt = select(self.model).where(self.model.user_id == user_id)
-        result = await self.session.execute(stmt)
+        result = await session.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def clear_cart(self, cart_id: int) -> None:
+    async def clear_cart(self, session:AsyncSession, cart_id: int) -> None:
         # Удаляем все позиции корзины
             stmt = delete(CartItemModel).where(CartItemModel.cart_id == cart_id)
-            await self.session.execute(stmt)
-    
-    async def get_cart_with_items(self, cart_id: int) -> Optional[CartModel]:
-        stmt = select(self.model).where(
-            self.model.id == cart_id
-        ).options(
-            selectinload(self.model.items).selectinload(CartItemModel.product)
-        )
+            await session.execute(stmt)
+            
+    async def get_cart_with_items(self, user_id: int) -> CartModel | None:
+        '''по Id юзера дает развернутый ответ по корзине юзера'''
+        # stmt = (
+        #     select(CartModel)
+        #     .where(CartModel.user_id == user_id)
+        #     .options(selectinload(CartModel.items))  # ← загружаем все CartItem
+        # )
+        # развернутая инфа о проуктах в позициях корзины
+        stmt = (
+            select(CartModel)
+            .where(CartModel.user_id == user_id)
+            .options(selectinload(CartModel.items).selectinload(CartItemModel.product))
+            )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
     
@@ -44,14 +56,12 @@ class CartRepository(BaseRepository):
     
     
 class CartItemRepository(BaseRepository):
-    # шляпа для макет функциоанл не проверен
-    async def get_by_cart_and_product(self, cart_id: int, product_id: int) -> Optional[CartItemModel]:
-        stmt = select(self.model).where(
-            self.model.cart_id == cart_id,
-            self.model.product_id == product_id
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
+    
+    
+    
+    def __init__(self, cart_item_db_model : CartItemModel):
+                super().__init__(cart_item_db_model)
+
     
     # async def get_all_by_cart(self, session: AsyncSession, cart_id: int) -> List[CartItemModel]:
     #     stmt = select(self.model).where(
@@ -72,5 +82,5 @@ class CartItemRepository(BaseRepository):
             await session.delete(current_item)
             return True
         except Exception as err:
-            return False
+            raise ValueError(f'ошибка при удалении позиции из корзины : {err}')
     

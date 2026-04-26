@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_serializer, model_validator
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 from backend.modules.products.schemas import ProductResponseSchema
 
 from sqlalchemy import Float, Integer
@@ -72,8 +72,15 @@ class AddToCartRequestSchema(BaseModel):
     """Запрос на добавление товара в корзину"""
     product_id: int = Field(..., gt=0, description="Product ID")
     quantity: int = Field(default=1, ge=1, le=99, description="Quantity")
+    # cart: Dict[int:int] = {}# словарь с id продукта и его количеством
 
 # Для обновления количества товара
 class UpdateCartItemRequestSchema(BaseModel):
     """Запрос на обновление количества товара в корзине"""
+    product_id: int = Field(..., gt=0, description="Product ID")
     quantity: int = Field(..., ge=0, le=99, description="New quantity (0 to remove)")
+    # cart: Dict[int:int] = {}
+
+class RemoveFromCartRequest(BaseModel):
+    '''запрос на удаление товара из корзины'''
+    product_id: int = Field(..., gt=0, description="Product ID")

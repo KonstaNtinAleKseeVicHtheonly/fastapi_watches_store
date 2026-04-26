@@ -26,6 +26,11 @@ from backend.modules.products.schemas import ProductCreateSchema
 class ProductRepository(BaseRepository):
     '''репозиторий для CRUD Операций с модель ProductModel'''
     
+    
+    def __init__(self, product_db_model : ProductModel):
+                super().__init__(product_db_model)
+    
+    
     # async def get_products_by_category(self, session:AsyncSession, category_id:int)->list[ProductModel]:
     #     '''по id категории выводит все продукты из нее'''
     #     stmt = select(self.model).where(self.model.category_id==category_id)
@@ -46,7 +51,7 @@ class ProductRepository(BaseRepository):
     #     session.add(new_product)
     #     return new_product
     
-    async def get_by_category(self,session:AsyncSession,  category_id: int) -> List[ProductModel]:
+    async def get_products_by_category(self,session:AsyncSession,  category_id: int) -> List[ProductModel]:
         '''выводит все продукты с развернутой инфой по указанной id категори'''
         stmt = select(self.model).options(joinedload(self.model.category)).filter(self.model.category_id == category_id)
         

@@ -8,7 +8,7 @@ class UserBaseSchema(BaseModel):
     '''базовая схема с общей инфой о товаре'''
     email: EmailStr = Field(..., min_length=5, max_length=200, description="user's email")
     password: str = Field(min_length=8, description="Пароль (от 8 символов)")
-    fullname: str = Field(min_length=4, description='полное имя юзера')
+    full_name: str = Field(..., min_length=4, description='полное имя юзера')
     
     @field_validator('password')
     @classmethod
@@ -17,7 +17,7 @@ class UserBaseSchema(BaseModel):
             return None
     
     
-    @field_validator('fullname')
+    @field_validator('full_name')
     @classmethod
     def check_username(cls, value:str):
         current_name = value.strip()
@@ -84,3 +84,11 @@ class UserResponseSchema(UserBaseSchema):
     class Config:
         from_attributes = True
 
+
+
+
+class RefreshTokenRequestSchema(BaseModel):
+    """
+схема для проверки выдаваемого refresh Токена юзеру
+    """
+    refresh_token : str

@@ -6,8 +6,8 @@ from backend.modules.users.schemas import RefreshTokenRequestSchema, UserRespons
 #сервисы
 from backend.modules.users.service import UserService
 #depends
-from backend.modules.users.dependencies import get_user_service
-from backend.core.security import get_verified_user,  hash_password
+from backend.modules.users.dependencies import get_user_service, get_verified_user
+from backend.core.security import  hash_password
 # jwt, авторизация аутентификация
 import jwt
 #конфигурация 

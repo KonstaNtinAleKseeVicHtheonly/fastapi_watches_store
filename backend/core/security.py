@@ -2,7 +2,6 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
 import jwt
-from fastapi import Depends, HTTPException, status
 # конфмгруация
 from backend.core.config import project_settings
 #зависимости
@@ -24,7 +23,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
 
 
 
-# перенесено в core/dependencies
+# перенесено в users/dependenices
 # async def get_verified_user(token: str = Depends(oauth2_scheme),
 #       user_service: UserService=Depends(get_user_service)):
 #     """
@@ -77,17 +76,6 @@ class TokenService:
     ACCESS_TOKEN_EXPIRE_MINUTES = project_settings.ACCESS_TOKEN_EXPIRE_MINUTES
     REFRESH_TOKEN_EXPIRE_DAYS = project_settings.REFRESH_TOKEN_EXPIRE_DAYS
         
-    # устаревшая версия
-    # def create_access_token(data: dict):
-    #  """
-    #  Создаёт JWT с payload (sub, role, id, exp).
-    #  """
-    #  to_encode = data.copy() #  Создаёт копию входного словаря data, чтобы избежать изменения оригинала
-    #  expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES) ## время жизни токена
-    #  to_encode.update({"exp": expire})
-    #  return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
     @classmethod
     def create_access_token(cls, data: dict): # прнимает инфу о юзере для payload в jwt
         """

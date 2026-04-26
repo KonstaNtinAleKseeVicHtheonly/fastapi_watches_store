@@ -9,7 +9,7 @@ from backend.modules.carts.service import CartService
 from backend.modules.users.models import UserModel
 #depends
 from backend.modules.carts.dependencies import get_cart_service
-from backend.core.security import get_verified_user
+from backend.modules.users.dependencies import get_verified_user
 
 
 

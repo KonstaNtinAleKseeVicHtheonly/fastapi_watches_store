@@ -25,7 +25,7 @@ class CartRepository(BaseRepository):
             stmt = delete(CartItemModel).where(CartItemModel.cart_id == cart_id)
             await session.execute(stmt)
             
-    async def get_cart_with_items(self, user_id: int) -> CartModel | None:
+    async def get_cart_with_items(self, session:AsyncSession, user_id: int) -> CartModel | None:
         '''по Id юзера дает развернутый ответ по корзине юзера'''
         # stmt = (
         #     select(CartModel)
@@ -38,7 +38,7 @@ class CartRepository(BaseRepository):
             .where(CartModel.user_id == user_id)
             .options(selectinload(CartModel.items).selectinload(CartItemModel.product))
             )
-        result = await self.session.execute(stmt)
+        result = await session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def get_or_create_cart(self, session: AsyncSession, user_id:int):

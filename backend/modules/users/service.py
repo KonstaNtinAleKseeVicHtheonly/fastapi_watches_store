@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from loguru import logger
+from backend.core.logging.logging_conf import project_logger
 from backend.core.service.base_service import BaseService
 from sqlalchemy.ext.asyncio import  AsyncSession
 from backend.modules.categories.repo import CategoryRepository
@@ -38,7 +38,7 @@ class UserService(BaseService):
     
     def generate_tokens_for_user(self, user_data:dict) -> dict:
         '''по валидным данным от новго юзера генерирует ему токены'''
-        user_refresh_token = self.user_refresh_token(user_data=user_data)
+        user_refresh_token = self.generate_refresh_token_for_user(user_data=user_data)
         user_access_token = self.generate_access_token_for_user(user_data=user_data)
         return {'access_token' : user_access_token, 'refresh_token' : user_refresh_token, 'token_type' : 'bearer'}
     
@@ -59,5 +59,5 @@ class UserService(BaseService):
                 'id': current_user.id
             }
             
-            return self.generate_tokens(user_data)  # ← возвращает готовый dict
+            return self.generate_tokens_for_user(user_data)  # ← возвращает готовый dict
         

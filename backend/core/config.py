@@ -17,6 +17,7 @@ class ProjectSettings(BaseSettings):
     APP_NAME: str = "FastAPI E STORE"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
+    APP_PORT : int = 8000
     
     # ========== БАЗА ДАННЫХ ==========
     DB_POSTGRES_HOST: str = "localhost"
@@ -60,12 +61,12 @@ class ProjectSettings(BaseSettings):
     
     
     # ========== CORS ==========
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:5173"]
-    ALLOWED_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:5173", "http://localhost:8001"]
+    ALLOWED_METHODS: List[str] = ['*']
     ALLOWED_HEADERS: List[str] = ["*"]
     
-    STATIC_DIR : str  = 'static'
-    IMAGES_DIR : str = 'static/images'
+    STATIC_DIR : str  = 'frontend/static'
+    IMAGES_DIR : str = 'frontend/static/images'
     # ========== ЗАГРУЗКА ФАЙЛОВ ==========
     MAX_UPLOAD_SIZE: int = 10_485_760  # 10MB
     ALLOWED_EXTENSIONS: List[str] = [".jpg", ".jpeg", ".png", ".gif", ".pdf"]

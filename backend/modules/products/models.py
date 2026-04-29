@@ -3,7 +3,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from typing import Optional, List
 from backend.core.db.database import Base
 from sqlalchemy.dialects.postgresql import TSVECTOR
-
+#модели с других модулеуй
+from backend.modules.orders.models import OrderItemModel
+#
 from slugify import slugify
 
 class ProductModel(Base):

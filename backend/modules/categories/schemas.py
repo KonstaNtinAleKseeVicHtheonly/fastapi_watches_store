@@ -4,10 +4,11 @@ from typing import Optional
 
 
 
+
 class CategoryBaseSchema(BaseModel):
     '''базовая схема с общей инфой о товаре'''
     
-    name : str = Field(min_length=1, max_length=50, description='НАзвание категории')
+    name : str = Field(...,min_length=1, max_length=50, description='НАзвание категории')
     parent_id : int | None = Field(default=None, description='Id родительской категории если есть')
 
     
@@ -19,7 +20,7 @@ class CategoryUpdateSchema(CategoryBaseSchema):
     pass
 
 class CategoryPatchSchema(BaseModel):
-    name : Optional[str] = Field(min_length=1, max_length=50, description='НАзвание категории', default=None)
+    name : str = Field(..., min_length=1, max_length=50, description='НАзвание категории')
     parent_id : Optional[int] = Field(default=None, description='Id родительской категории если есть')
 
 

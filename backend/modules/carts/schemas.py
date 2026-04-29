@@ -3,12 +3,10 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from backend.modules.products.schemas import ProductResponseSchema
 
-from sqlalchemy import Float, Integer
-from sqlalchemy.orm import Mapped
         
 class CartItemBaseSchema(BaseModel):
     product_id: int = Field(..., gt=0, description="Product ID to add to cart")
-    quantity: Mapped[int] = Field(Integer, nullable=False, default=1)
+    quantity: int = Field(..., nullable=False)
     
 class CartItemCreateSchema(CartItemBaseSchema):
     ...
@@ -16,16 +14,31 @@ class CartItemCreateSchema(CartItemBaseSchema):
 class CartItemResponseSchema(BaseModel):
     """Ответ с позицией корзины"""
     cart_id: int
-    quantity: Mapped[int] = Field(Integer, nullable=False, default=1, description='количество товара в корзине')
+    quantity: int = Field(..., nullable=False, description='количество товара в корзине')
     product: Optional["ProductResponseSchema"] = None  # вложенный продукт
-    price : float = Field(Float, gt=0.0, description='цена товара на момент добавления в корзину')
+    price : float = Field(..., gt=0.0, description='цена товара на момент добавления в корзину')
     
     model_config = ConfigDict(from_attributes=True)
     
-    @model_validator(mode='after')
-    def calculate_subtotal(self):
-        self.subtotal = self.price * self.quantity
-        return self
+    
+    @model_serializer
+    def serialize_model(self):
+        return {
+            'cart_id': self.cart_id,
+            'quantity': self.quantity,
+            'product': self.product,
+            'price': self.price,
+            'subtotal': self.price * self.quantity,
+        }
+    
+class CartBriefResponseSchema(BaseModel):
+    """Краткая информация о корзине юзера  (без  выгрузки позиций items)"""
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
     
 class CartItemUpdateSchema(CartItemBaseSchema):
     ...
@@ -46,6 +59,8 @@ class CartResponseSchema(BaseModel):
     updated_at: datetime
     items: List[CartItemResponseSchema] = Field(default_factory=list, description="Cart items")
     
+    model_config = ConfigDict(from_attributes=True)
+    
     @property
     def total_items(self) -> int:
         return sum(item.quantity for item in self.items)
@@ -65,20 +80,19 @@ class CartResponseSchema(BaseModel):
             'total_items': self.total_items,
             'total_price': self.total_price
         }
-    model_config = ConfigDict(from_attributes=True)    
     
 # Для добавления товара в корзину (request body)
 class AddToCartRequestSchema(BaseModel):
     """Запрос на добавление товара в корзину"""
     product_id: int = Field(..., gt=0, description="Product ID")
-    quantity: int = Field(default=1, ge=1, le=99, description="Quantity")
+    quantity: int = Field(...,  ge=1, le=99, description="Quantity")
     # cart: Dict[int:int] = {}# словарь с id продукта и его количеством
 
 # Для обновления количества товара
 class UpdateCartItemRequestSchema(BaseModel):
     """Запрос на обновление количества товара в корзине"""
     product_id: int = Field(..., gt=0, description="Product ID")
-    quantity: int = Field(..., ge=0, le=99, description="New quantity (0 to remove)")
+    quantity: int = Field(..., le=999, description="New quantity (0 to remove)")
     # cart: Dict[int:int] = {}
 
 class RemoveFromCartRequest(BaseModel):

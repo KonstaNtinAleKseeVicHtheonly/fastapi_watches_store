@@ -1,6 +1,6 @@
 from fastapi.params import Depends
 from sqlalchemy.ext.asyncio import  AsyncSession
-from loguru import logger
+from backend.core.logging.logging_conf import project_logger
 from typing import AsyncGenerator
 from backend.modules.carts.repo import CartRepository, CartItemRepository
 from backend.modules.products.repo import ProductRepository

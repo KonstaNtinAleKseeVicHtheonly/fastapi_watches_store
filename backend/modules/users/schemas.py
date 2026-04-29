@@ -7,14 +7,15 @@ from typing import Optional
 class UserBaseSchema(BaseModel):
     '''базовая схема с общей инфой о товаре'''
     email: EmailStr = Field(..., min_length=5, max_length=200, description="user's email")
-    password: str = Field(min_length=8, description="Пароль (от 8 символов)")
+    password: str = Field(..., min_length=8, description="Пароль (от 8 символов)")
     full_name: str = Field(..., min_length=4, description='полное имя юзера')
     
     @field_validator('password')
     @classmethod
     def check_password(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
+        if not value.isalnum():
             return None
+        return value
     
     
     @field_validator('full_name')
@@ -73,12 +74,14 @@ class UserPatchSchema(BaseModel):
         return current_name
 
 
-class UserResponseSchema(UserBaseSchema):
+class UserResponseSchema(BaseModel):
+    
     id: int = Field(..., description="User id")
+    full_name: str = Field(..., min_length=4, description='полное имя юзера')
+    email: EmailStr = Field(..., min_length=5, max_length=200, description="user's email")
     is_active: bool = Field(..., description="актуален ли юзер")
     is_superuser: bool = Field(..., description="Полномочия админа")
     created_at: datetime = Field(..., description="Когда юзер был зареган")
-    
 
 
     class Config:

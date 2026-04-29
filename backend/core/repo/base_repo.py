@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
+from backend.core.logging.logging_conf import project_logger
 from typing import List, Any, Dict
 from backend.core.db.database import Base
 #
@@ -31,7 +31,7 @@ class BaseRepository:
         self.model = model
         
     async def get_by_id(self, session : AsyncSession, object_id:int)->object:
-            logger.info(f"получение объекта с id {object_id} из модели {self.model .__name__}")
+            project_logger.info(f"получение объекта с id {object_id} из модели {self.model .__name__}")
             stmt = select(self.model ).where(self.model .id == object_id)
             result = await session.execute(stmt)
             current_object =  result.scalar_one_or_none()
@@ -49,7 +49,7 @@ class BaseRepository:
         
     async def get_by_params(self,session:AsyncSession, **filters)->object|None:
         '''ищет строку в табице по заданным параметрам если не находит - вернет None'''
-        stmt = select(self.model ).filter_by(**filters)
+        stmt = select(self.model).filter_by(**filters)
         result = await session.execute(stmt)
         current_object = result.scalar_one_or_none()
         return current_object
@@ -63,16 +63,16 @@ class BaseRepository:
     async def create(self,session: AsyncSession, data:dict)->object:
         '''создание новоно объекта при post запросе'''
 
-        new_obj = self.model (**data)
-        logger.info("объект спешно создан, сделайте комит сессии")
+        new_obj = self.model(**data)
+        project_logger.info("объект спешно создан, сделайте комит сессии")
         session.add(new_obj)
-        logger.info(f"добавили продукт в сессию {data}")
+        project_logger.info(f"добавили продукт в сессию {data}")
         return new_obj
 
             
     async def get_objects_by_params(self, session : AsyncSession, **params) -> List[Any]:
         '''по указанным ключам значениями осущесвтляет поиск  объедков в текущей модели'''
-        logger.info(f"поиск объектов в модели {self.model .__name__} по параметрам {params}")
+        project_logger.info(f"поиск объектов в модели {self.model .__name__} по параметрам {params}")
         conditions = []
         for field, value in params.items():
             current_column = getattr(self.model , field)
@@ -104,7 +104,7 @@ class BaseRepository:
     async def get_objects_for_offset_pagination_by_params(self,session:AsyncSession, filters:list, page: int = 1,page_size: int = 10, rank_col=None)->Dict[str, Any]:
         '''принимает параметры пагинаицц (page,page_size),список фильтров для поиска уже сформированных (в эндпоинте) и по ним поиск делает учитывая пагинацию
         возвращает словарь из списка отобранных значений с условимия поиска и пагинации'''
-        logger.info(f"Начало поиска товаров в модели {self.model .__name__} по запросу юзера, с учетом пагинации страница{page} ")
+        project_logger.info(f"Начало поиска товаров в модели {self.model .__name__} по запросу юзера, с учетом пагинации страница{page} ")
         # 1. Считаем общее количество элементов по заданным параметрам
         total_stmt = select(func.count()).select_from(self.model ).where(*filters)
         total = await session.scalar(total_stmt) or 0 
@@ -112,7 +112,7 @@ class BaseRepository:
         # ищем объекты
         #  с учетом ранга поиска(вначале будут товары с наибольшей частотой слова из запроса юзера)
         if rank_col is not None:
-            logger.info("Адаптирование поиска с учетом ранжирвания")
+            project_logger.info("Адаптирование поиска с учетом ранжирвания")
             items_stmt = (
                     select(self.model )
                     .where(*filters)
@@ -123,7 +123,7 @@ class BaseRepository:
             rows = items_request.all()
             items = [item[0] for item in rows]
         else:
-            logger.info("поиск без ранжирования")
+            project_logger.info("поиск без ранжирования")
             items_stmt = (
                     select(self.model )
                     .where(*filters)
@@ -139,12 +139,12 @@ class BaseRepository:
     async def delete_by_id(self, session : AsyncSession, object_id:int):
         '''удаление объекта по id'''
         try:
-            logger.info(f"удаление объекта с id {object_id} из модели {self.model .__name__}")
+            project_logger.info(f"удаление объекта с id {object_id} из модели {self.model .__name__}")
             current_obj = await self.get_by_id(session, object_id)
 
             await session.delete(current_obj)
                 
-            logger.info(f"объект с id {object_id} удален, сделайие коммит сесии")
+            project_logger.info(f"объект с id {object_id} удален, сделайие коммит сесии")
             return True
         except Exception :
             return False
@@ -152,14 +152,14 @@ class BaseRepository:
     async def soft_deleting_by_id(self, session : AsyncSession, object_id:int)->object:
         '''логическое удаление (меняет isactive на False) с оставлением в БД,в случае успешного удаления вернет измененный тип объекта
         (для рефреша в энддпоинте)'''
-        logger.info(f"Мягкое удаление  объекта с id {object_id} в модели {self.model .__name__}")
+        project_logger.info(f"Мягкое удаление  объекта с id {object_id} в модели {self.model .__name__}")
         current_obj = await self.get_by_params(session, id = object_id, is_active=True)
         current_obj.is_active = False
         return current_obj
         
     async def update_put(self, session: AsyncSession,  object_id:int ,update_data: Dict[str, Any]):
         '''по методу put полностью обновляем строку'''
-        logger.info(f"НАчало put обновления строки с id {object_id} у модели {self.model .__name__}")
+        project_logger.info(f"НАчало put обновления строки с id {object_id} у модели {self.model .__name__}")
         updated_obj = await self.get_by_id(session, object_id)
         for field, value in update_data.items():
             if hasattr(updated_obj, field):
@@ -171,7 +171,7 @@ class BaseRepository:
         
     async def update_patch(self,session: AsyncSession,  find_by: Dict[str, Any],update_data: Dict[str, Any]):
         '''по методу patch полностью обновляем строку'''
-        logger.info(f"НАчало put обновления строки с параметрами {find_by} у модели {self.model .__name__}")
+        project_logger.info(f"НАчало put обновления строки с параметрами {find_by} у модели {self.model .__name__}")
         updated_obj = await self.get_by_params(session, **find_by)
         if not updated_obj:
             raise ValueError(f"объекта с параметрами  '{find_by}' не существует в модели {self.model .__name__}") 

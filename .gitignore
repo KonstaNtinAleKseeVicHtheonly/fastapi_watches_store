@@ -81,3 +81,9 @@ shop.db
 .vscode
 celerybeat-schedule
 celerybeat-schedule-wal
+
+
+# Загруженные пользователями файлы (uploads)
+frontend/uploads/
+frontend/static
+frontend/media/

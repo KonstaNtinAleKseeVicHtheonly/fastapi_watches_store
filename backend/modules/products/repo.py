@@ -57,7 +57,7 @@ class ProductRepository(BaseRepository):
         
         query = await session.execute(stmt)
         
-        products_by_category = query.scalars.all()
+        products_by_category = query.scalars().all()
         return products_by_category
         
   

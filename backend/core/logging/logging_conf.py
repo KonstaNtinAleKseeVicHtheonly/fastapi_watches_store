@@ -4,6 +4,11 @@ from pathlib import Path
 from typing import Optional
 import sys
 
+
+
+
+
+
 def setup_logging(log_dir: Optional[str | Path] = "logs"):
     """
     Настройка логирования для всего приложения
@@ -31,8 +36,8 @@ def setup_logging(log_dir: Optional[str | Path] = "logs"):
     logger.add(
         log_path / "debug.json.log",
         level="DEBUG",
-        format="{message}",
-        serialize=True,
+        format="{time:DD.MM.YYYY HH:mm:ss} | {level} | {message}",
+        serialize=False,
         filter=lambda record: record["level"].name == "DEBUG",
         rotation="10 MB",
         retention="7 days"
@@ -83,3 +88,4 @@ def setup_logging(log_dir: Optional[str | Path] = "logs"):
     )
     return logger
 
+project_logger = setup_logging()

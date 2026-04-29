@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from loguru import logger
+from backend.core.logging.logging_conf import project_logger
 from backend.core.service.base_service import BaseService
 from sqlalchemy.ext.asyncio import  AsyncSession
 from backend.modules.categories.repo import CategoryRepository
@@ -38,13 +38,13 @@ class ProductService(BaseService):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Category with id {product_data.category_id} does not exist"
             )
-        existed_product = await self.main_repo.get_by_params(self.session,product_data.name)
+        existed_product = await self.main_repo.get_by_params(self.session,name = product_data.name)
         if existed_product:
             raise HTTPException(400, f"Product '{product_data.name}' already exists")
         new_product_data = product_data.model_dump()
         new_product = await self.main_repo.create(self.session, new_product_data)
         if new_product:
-            await self.session.refresh()
+            await self.session.commit()
             return new_product
         raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

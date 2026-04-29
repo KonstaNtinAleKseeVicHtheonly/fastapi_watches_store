@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Body, File, Path, Query, Depends, status, HTTPException, UploadFile
 # схемы
 from backend.modules.carts.schemas import CartResponseSchema, AddToCartRequestSchema, UpdateCartItemRequestSchema, \
- RemoveFromCartRequest
+ RemoveFromCartRequest, CartBriefResponseSchema
 #сервсиы
 from backend.modules.carts.service import CartService
 #модели
@@ -21,21 +21,26 @@ cart_api_router = APIRouter(prefix="/api/carts", tags=['carts'])
 
 
 
-@cart_api_router.get('/', response_model=CartResponseSchema, status_code=status.HTTP_200_OK)
-async def get_user_main_cart(
+@cart_api_router.get('/', response_model=CartBriefResponseSchema, status_code=status.HTTP_200_OK)
+async def get_user_main_cart_short_info(
                              cart_service:CartService = Depends(get_cart_service),
                              current_user:UserModel = Depends(get_verified_user)):
-    '''выводит корзину юзера со всеми позициями в ней'''
+    '''выводит корзину юзера без учета позииций'''
     try:
         
         user_cart_short = await cart_service.get_user_cart_short(current_user.id)
+        if not user_cart_short:
+            raise HTTPException(status_code=404)
         return user_cart_short
+    except HTTPException:
+        return {'message' : 'у данного юзера еще нет корзины',
+                'status_code' : 404}
     except Exception as err:
          raise HTTPException(
             status_code=500,
             detail=str(err))  # общая ошибка 
 
-@cart_api_router.get('/detailed', response_model=CartResponseSchema, status_code=status.HTTP_200_OK)
+@cart_api_router.get('/detailed', response_model=CartResponseSchema|None, status_code=status.HTTP_200_OK)
 async def get_user_main_cart_detailed_info(
                              cart_service:CartService = Depends(get_cart_service),
                              current_user:UserModel = Depends(get_verified_user)):
@@ -43,6 +48,8 @@ async def get_user_main_cart_detailed_info(
     try:
         
         user_cart_detailed = await cart_service.get_user_cart_detailed(current_user.id)
+        if not user_cart_detailed:
+            raise HTTPException(status_code=404, detail='у данного юзера еще нет корзины')
         return user_cart_detailed
     except Exception as err:
          raise HTTPException(
@@ -69,7 +76,7 @@ async def update_cart_item(updated_item_data: UpdateCartItemRequestSchema,
                         current_user:UserModel = Depends(get_verified_user)):
 
     updated_cart_item = await cart_service.update_cart_item_quantity(user_id=current_user.id,
-                                                                     item_id=updated_item_data.product_id,
+                                                                     product_id=updated_item_data.product_id,
                                                                      quantity=updated_item_data.quantity)
     return updated_cart_item
 

@@ -86,7 +86,7 @@ class ProductResponseSchema(ProductBaseSchema):
     id: int = Field(..., description="Unique product ID")
     slug: str = Field(min_length=5, max_length=200, description="Product slug")
     is_active: bool
-    category: CategoryResponseSchema = Field(..., description="Product category details")
+    # category: CategoryResponseSchema = Field(..., description="Product category details")
 
     class Config:
         from_attributes = True

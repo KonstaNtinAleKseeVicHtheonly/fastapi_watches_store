@@ -1,6 +1,6 @@
 from fastapi.params import Depends
 from sqlalchemy.ext.asyncio import  AsyncSession
-from loguru import logger
+from backend.core.logging.logging_conf import project_logger
 from typing import AsyncGenerator
 from backend.modules.categories.repo import CategoryRepository
 from backend.modules.categories.service import CategoryService

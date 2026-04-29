@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import  AsyncSession
-from loguru import logger
+from backend.core.logging.logging_conf import project_logger
 from typing import AsyncGenerator
 from backend.core.db.database import AsyncSessionLocal
 # from backend.modules.users.service import UserService
@@ -53,9 +53,9 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     Сессия автоматически создается для каждого запроса и закрывается после ответа.
     """
     async with AsyncSessionLocal() as session:
-        logger.debug({'event':'запуск зависимости асинхронной сессии'})
+        project_logger.debug({'event':'запуск зависимости асинхронной сессии'})
         yield session
     # ЗАКРЫТИЕ СЕССИИ
-    logger.debug({'event':'ЗАкрытие асинхронной сессии'})
+    project_logger.debug({'event':'ЗАкрытие асинхронной сессии'})
     
     

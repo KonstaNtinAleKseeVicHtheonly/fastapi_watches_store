@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Body, Path, Query, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 #схемы
 from backend.modules.categories.schemas import CategoryCreateSchema, CategoryPatchSchema, CategoryResponseSchema
 # depends
 from fastapi import Depends
-from backend.core.dependencies import get_db_session
 from backend.modules.categories.dependencies import get_category_service
 # сервисы
 from backend.modules.categories.service import CategoryService
@@ -33,14 +31,15 @@ async def get_all_categories(
 
 @category_api_router.get("/{category_id}", response_model=CategoryResponseSchema, status_code=status.HTTP_200_OK)
 async def get_category_by_id(
-    category_id: int=Path(gt=1, description='id категории'),
+    category_id: int=Path(ge=1, description='id категории'),
     category_service: CategoryService = Depends(get_category_service)
 ):
     """Получить категорию по ID."""
     try:
         current_category = await category_service.get_category_by_id(category_id) # если категория не найдется то исключение из сервиса подинмется
-
         return CategoryResponseSchema.model_validate(current_category)
+    except HTTPException:
+        raise
     except Exception as err:
          raise HTTPException(
             status_code=500,
@@ -54,6 +53,7 @@ async def create_new_category(
 ):
     """Создать новую категорию."""
     try:
+        # првоерка на существоавание категории уже в методе сервиса
         new_category = await category_service.create_category_by_schema(category_data)
         return CategoryResponseSchema.model_validate(new_category)
     except ValueError as e: # Обрабатываем бизнес-ошибки из сервиса

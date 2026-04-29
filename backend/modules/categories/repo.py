@@ -29,10 +29,3 @@ class CategoryRepository(BaseRepository):
     def __init__(self, category_db_model : CategoryModel):
                 super().__init__(category_db_model)
     
-    # async def create_category_by_schema(self, 
-    #                                     session:AsyncSession,
-    #                                     category_data :CategoryCreateSchema):
-    #     '''создаем по инфе из схемы категорию'''
-    #     new_category = self.model(**category_data.model_dump())
-    #     session.add(new_category)
-    #     return new_category

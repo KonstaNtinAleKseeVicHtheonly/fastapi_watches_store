@@ -2,15 +2,13 @@ from typing import List
 from fastapi import APIRouter, Body, File, Path, Query, Depends, status, HTTPException, UploadFile
 # схемы
 from backend.modules.products.schemas import ProductCreateSchema, ProductResponseSchema, ProductPatchSchema, ProductListResponseSchema
-
 #сервисы БД
-from backend.modules.categories.service import CategoryService
 from backend.modules.products.service import ProductService
+from backend.modules.categories.service import CategoryService
 #depends
 from backend.modules.products.dependencies import get_product_service
-# модели 
-from backend.modules.users.models import UserModel
-from backend.modules.products.models import ProductModel
+from backend.modules.categories.dependencies import get_category_service
+
 
 
 # # конфиги для записи фоток продуктов в папку проекта
@@ -32,7 +30,12 @@ async def get_all_products(
     try:
         
         all_products = await product_service.get_all_objects()
-        return all_products
+        return ProductListResponseSchema(
+                products=all_products,  # [] если пусто
+                total=len(all_products),
+                page=1,
+                page_size=20
+            )
     except Exception as err:
          raise HTTPException(
             status_code=500,
@@ -40,13 +43,13 @@ async def get_all_products(
 
 @product_api_router.get("/{product_id}", response_model=ProductResponseSchema, status_code=status.HTTP_200_OK)
 async def get_product_by_id_route(
-    product_id: int=Path(gt=1, description='id продукта'),
-    product_service:ProductService = Depends(get_product_service)
+    product_id: int=Path(ge=1, description='id продукта'),
+    product_service:ProductService = Depends(get_product_service),
 ):
-    """Получить категорию по ID."""
+    """Получить продукт по ID."""
     try:
-        current_product = await product_service.get_category_by_id(product_id) # если категория не найдется то исключение из сервиса подинмется
-
+        current_product = await product_service.get_object_by_id(product_id)
+        
         return ProductResponseSchema.model_validate(current_product)
     except Exception as err:
          raise HTTPException(
@@ -55,13 +58,19 @@ async def get_product_by_id_route(
          
 @product_api_router.get("/category/{category_id}", response_model=ProductListResponseSchema, status_code=status.HTTP_200_OK)
 async def get_products_by_category(
-    category_id: int=Path(gt=1, description='id категории для вывода продуктов из нее'),
-    product_service:ProductService = Depends(get_product_service)):
+    category_id: int=Path(ge=1, description='id категории для вывода продуктов из нее'),
+    product_service:ProductService = Depends(get_product_service),
+    page: int = 1,
+    page_size: int = 20):
     """Получить развернутую инфу по продуктам по указанной Id категории"""
     try:
         products_by_category = await product_service.get_products_by_category(category_id)
 
-        return ProductListResponseSchema.model_validate(products_by_category)
+        return ProductListResponseSchema(
+                                        products = products_by_category,
+                                        page = page,
+                                        page_size=page_size,
+                                        total = len(products_by_category))
     except Exception as err:
          raise HTTPException(
             status_code=500,

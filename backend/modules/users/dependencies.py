@@ -69,4 +69,13 @@ async def get_verified_user(token: str = Depends(oauth2_scheme),
     if current_user is None:
          raise credentials_exception
     return current_user
-
+async def check_user_for_admin(
+        current_user: UserModel = Depends(get_verified_user)
+    ) -> UserModel:
+        """Проверяет, является ли пользователь администратором"""
+        if current_user.is_superuser:
+            return current_user
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="У вас нет полномочий для данного действия")

@@ -16,36 +16,6 @@ from backend.core.db.database import AsyncSessionLocal
 
 
 
-# async def get_verified_user(token: str = Depends(oauth2_scheme),
-#       user_service: UserService=Depends(get_user_service)):
-#     """
-#     Проверяет JWT и возвращает пользователя из базы.
-#     """
-#     credentials_exception = HTTPException(
-#         status_code=status.HTTP_401_UNAUTHORIZED,
-#         detail="Could not validate credentials",
-#         headers={"WWW-Authenticate": "Bearer"},
-#         )
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         email: str = payload.get("sub")
-#         if email is None:
-#              raise credentials_exception
-#     except jwt.ExpiredSignatureError:
-#         raise HTTPException(
-#         status_code=status.HTTP_401_UNAUTHORIZED,
-#         detail="Token has expired",
-#         headers={"WWW-Authenticate": "Bearer"},
-#     )
-#     except jwt.PyJWTError:
-#         raise credentials_exception
-#     current_user = await user_service.get_object_by_params(email=email, is_active=True)
-
-#     if current_user is None:
-#          raise credentials_exception
-#     return current_user
-
-
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """

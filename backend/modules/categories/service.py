@@ -53,3 +53,20 @@ class CategoryService(BaseService):
                                  'case' : 'данная категория не найдена в БД'})
             raise HTTPException(status_code=404, detail="категория по заданному id не найдена")
         return current_category
+    
+    async def delete_current_category(self, category_id:int)->bool|HTTPException:
+        
+        current_category = await self.main_repo.get_by_id(self.session, category_id)
+        
+        if not current_category:
+            raise HTTPException(status_code=404, detail=f'категории с id : {category_id}, не сущетсвует')
+        if not current_category.is_active:
+            raise HTTPException(status_code=404, detail=f'категории с id : {category_id} уже удален')
+        try:
+             await self.main_repo.soft_deleting_by_id(self.session, category_id)
+             await self.session.commit()
+             return True
+        except Exception as err:
+            project_logger.error({'step':f'мягкое удаление категории с id {category_id}',
+                                  'case' : f'ошибка произошла : {err}'})
+            return HTTPException(status_code=500, detail='внутренняя ошибка сервера при удалении категории, повторите позже')

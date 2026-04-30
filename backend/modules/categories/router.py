@@ -5,8 +5,10 @@ from backend.modules.categories.schemas import CategoryCreateSchema, CategoryPat
 # depends
 from fastapi import Depends
 from backend.modules.categories.dependencies import get_category_service
+from backend.modules.users.dependencies import check_user_for_admin
 # сервисы
 from backend.modules.categories.service import CategoryService
+from backend.modules.users.models import UserModel
 
 
 
@@ -62,7 +64,15 @@ async def create_new_category(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"An unexpected error occurred: {e}")
 
 
+@category_api_router.delete('/{category_id}', status_code=status.HTTP_200_OK)
+async def delete_category(category_id : int = Path(ge=0), 
+                         category_service: CategoryService = Depends(get_category_service),
+                         admin_user: UserModel = Depends(check_user_for_admin)):
 
+        deleting_result = await category_service.delete_current_category(category_id)
+        if deleting_result:
+            return {"message" : f"Категория  с id {category_id} стала неактивна"}
+        return{"message" : "произошла непредвиденна ситуация"}
 
 
 
@@ -145,18 +155,3 @@ async def create_new_category(
 #                 detail=str(err)  # общая ошибка 
 #             )
 
-# @category_api_router.delete('/{category_id}', status_code=status.HTTP_200_OK)
-# async def delete_category(category_id : int = Path(ge=0), 
-#                           session : AsyncSession = Depends(get_db_session),
-#                           repo:CategoryRepository = Depends(get_category_repository)):
-#     try:
-#         # логика мягкого удаления
-#         changed_category = await repo.soft_deleting_by_id(session, category_id)
-#         await session.commit()
-#         await session.refresh(changed_category)
-#         return {"message" : f"Категория  с id {category_id} стала неактивна"}
-#     except Exception as err:
-#          raise HTTPException(
-#             status_code=500,
-#             detail=str(err)  # общая ошибка 
-#         )

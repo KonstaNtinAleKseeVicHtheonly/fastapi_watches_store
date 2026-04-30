@@ -49,5 +49,20 @@ class ProductService(BaseService):
         raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid data for product {product_data}")
-
-  
+        
+    async def delete_current_product(self, product_id:int)->bool|HTTPException:
+        
+        current_product = await self.main_repo.get_by_id(self.session, product_id)
+        
+        if not current_product:
+            raise HTTPException(status_code=404, detail=f'продукта с id : {product_id}, не сущетсвует')
+        if not current_product.is_active:
+            raise HTTPException(status_code=404, detail=f'продукта с id : {product_id} уже удален')
+        try:
+             await self.main_repo.soft_deleting_by_id(self.session, product_id)
+             await self.session.commit()
+             return True
+        except Exception as err:
+            project_logger.error({'step':f'мягкое удаление товара с id {product_id}',
+                                  'case' : f'ошибка произошла : {err}'})
+            return HTTPException(status_code=500, detail='внутренняя ошибка сервера при удалении товара, повторите позже')

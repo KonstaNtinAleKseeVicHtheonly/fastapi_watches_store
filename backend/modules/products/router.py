@@ -8,6 +8,8 @@ from backend.modules.categories.service import CategoryService
 #depends
 from backend.modules.products.dependencies import get_product_service
 from backend.modules.categories.dependencies import get_category_service
+from backend.modules.users.dependencies import check_user_for_admin
+from backend.modules.users.models import UserModel
 
 
 
@@ -81,7 +83,8 @@ async def get_products_by_category(
 @product_api_router.post("/", response_model=ProductResponseSchema, status_code=status.HTTP_201_CREATED)
 async def create_product_route(
     product_data: ProductCreateSchema, # FastAPI валидирует Pydantic-схему
-    product_service: ProductService = Depends(get_product_service) # Внедряем сервис
+    product_service: ProductService = Depends(get_product_service), # Внедряем сервис
+    check_user_for_admin: UserModel = Depends(check_user_for_admin) # для проверки на полномоия админа
 ):
     """Создать новую категорию."""
     try:
@@ -93,8 +96,15 @@ async def create_product_route(
     except Exception as e: # Общая обработка других ошибок
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"An unexpected error occurred: {e}")
 
-
-
+@product_api_router.delete('/{product_id}')
+async def delete_product_by_id(product_id:int = Path(ge=1),
+                               product_service: ProductService = Depends(get_product_service), # Внедряем сервис
+                                check_user_for_admin: UserModel = Depends(check_user_for_admin) # для проверки на полномоия админа
+                               ):
+    '''удаляет по Id продукт если он существует'''
+    deliting_result = await product_service.delete_current_product(product_id)
+    if deliting_result:
+        return {'message' : f'продукт с id {product_id} был успешно удален(стал неактивен)'}
 
 # # вариант для фильтрации и паигнации
 # @product_api_router.get('/', response_model = ProductListResponseSchema)

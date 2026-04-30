@@ -65,8 +65,8 @@ class ProjectSettings(BaseSettings):
     ALLOWED_METHODS: List[str] = ['*']
     ALLOWED_HEADERS: List[str] = ["*"]
     
-    STATIC_DIR : str  = 'frontend/static'
-    IMAGES_DIR : str = 'frontend/static/images'
+    STATIC_DIR : str  = 'backend/static'
+    IMAGES_DIR : str = 'backend/static/images'
     # ========== ЗАГРУЗКА ФАЙЛОВ ==========
     MAX_UPLOAD_SIZE: int = 10_485_760  # 10MB
     ALLOWED_EXTENSIONS: List[str] = [".jpg", ".jpeg", ".png", ".gif", ".pdf"]

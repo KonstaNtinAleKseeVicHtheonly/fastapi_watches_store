@@ -1,0 +1,94 @@
+name: fastapi-estore-real
+services:
+    db:
+        image: postgres:17
+        container_name: fashop_db
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=12345
+          - POSTGRES_DB=fastapi_estore
+        volumes:
+          - postgres_data:/var/lib/postgresql/data
+        restart: unless-stopped
+        networks:
+          - fashop_network
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+    backend:
+        build:
+          context: .
+          dockerfile: backend/Dockerfile
+        container_name: fashop_backend
+        # ✅ НЕТ command - используем CMD из Dockerfile
+        volumes:
+          - ./backend:/app
+          - backend_static:/app/static
+        environment:
+          - APP_NAME=${APP_NAME:-FastAPI Shop}
+          - DEBUG=${DEBUG:-False}
+          - DATABASE_URL=postgresql+asyncpg://${DB_POSTGRES_USER:-postgres}:${DB_POSTGRES_PASSWORD:-password}@db:5432/${DB_POSTGRES_NAME:-fastapi_estore}
+          - CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN}
+        expose:
+          - "8000"
+        depends_on:
+          db:
+            condition: service_healthy
+        restart: unless-stopped
+        networks:
+          - fashop_network
+
+    frontend:
+        build:
+          context: ./frontend
+          dockerfile: Dockerfile
+          args:
+            - VITE_API_BASE_URL=https://${DOMAIN}/api
+        container_name: fashop_frontend
+        depends_on:
+          - backend
+        expose:
+          - "80"
+        restart: unless-stopped
+        networks:
+          - fashop_network
+
+    nginx:
+        image: nginx:alpine
+        container_name: fashop_nginx
+        volumes:
+          - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+          - /etc/letsencrypt:/etc/letsencrypt:ro
+          - backend_static:/app/backend/static:ro
+          - ./certbot/www:/var/www/certbot:ro
+        ports:
+          - "80:80"
+          - "443:443"
+        environment:
+          - DOMAIN=${DOMAIN}
+        command: /bin/sh -c "envsubst '$${DOMAIN}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+        depends_on:
+          - backend
+          - frontend
+        restart: unless-stopped
+        networks:
+          - fashop_network
+    certbot:
+        image: certbot/certbot
+        container_name: fashop_certbot
+        volumes:
+          - /etc/letsencrypt:/etc/letsencrypt
+          - ./certbot/www:/var/www/certbot
+        entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+        restart: unless-stopped
+        networks:
+          - fashop_network
+
+networks:
+  fashop_network:
+    driver: bridge
+
+volumes:
+  backend_static:
